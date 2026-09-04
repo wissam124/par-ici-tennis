@@ -2,6 +2,8 @@
 
 Script to automatically book a tennis court in Paris (on https://tennis.paris.fr)
 
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the package structure and command data flows.
+
 > "Par ici" mean "this way" in french. The "Parisii" were a Gallic tribe that dwelt on the banks of the river Seine. They lived on lands now occupied by the modern city of Paris. The project name can be interpreted as "For a Parisian tennis, follow this way"
 
 **NOTE**: They added a CAPTCHA during the reservation process. The latest version **should** pass through. If it fails, open an issue with error logs, I will try to find another way.
@@ -11,6 +13,8 @@ Script to automatically book a tennis court in Paris (on https://tennis.paris.fr
 - [Prerequisites](#prerequisites)
 - [Get started](#get-started)
   - [Configuration](#configuration)
+  - [Searching availability](#searching-availability)
+  - [Querying a tennis planning](#querying-a-tennis-planning)
   - [Ntfy notifications (optional)](#ntfy-notifications-optional)
   - [Payment process](#payment-process)
   - [Running](#running)
@@ -54,6 +58,8 @@ You can use two formats for the `locations` field:
 
 Choose the format that best matches your preferences.
 
+Before searching or booking, the configured location names are checked against the current official Paris Tennis directory. The command stops and reports any invalid names.
+
 - `date` (optional) a string representing a date formatted D/M/YYYY, do not set the date to automatically book 6 days in the future as soon as the reservation slots open
 
 - `hours` a list of hours ordered by preference
@@ -63,6 +69,79 @@ Choose the format that best matches your preferences.
 - `courtType` an array containing court types you can book `Découvert` and/or `Couvert`
 
 - `players` list of players 3 max (without you)
+
+### Searching availability
+
+To search without booking, set `date`, `hours`, and `locations` in `config.json`, then run:
+
+```sh
+npm run search
+```
+
+The command logs in to Paris Tennis, reports progress for each configured location and hour, then prints the full list of available courts as a terminal table. It does not select or reserve a slot. Add `--json` to receive machine-readable JSON instead:
+
+```sh
+npm run search -- --json
+```
+
+Example JSON output:
+
+```json
+[
+  {
+    "location": "Valeyre",
+    "court": "Court N°1",
+    "courtNumber": 1,
+    "courtId": "123",
+    "date": "31/07/2026",
+    "hour": "10",
+    "available": true,
+    "priceType": "Tarif plein",
+    "courtType": "Couvert"
+  }
+]
+```
+
+Only slots exposed as bookable by the Paris Tennis results page are returned. If no matching slots are available, the table command reports that none were found; JSON mode prints an empty array. The object form of `locations` can be used to limit results to particular court numbers.
+
+### Querying a tennis planning
+
+To return all `LIBRE` and `PUBLIC` slots from a tennis planning, provide the location and date on the command line:
+
+```sh
+npm run planning -- "Poliveau" "05/09/2026"
+```
+
+The date must be today or one of the following six days. The command prints a terminal table containing the hourly range, physical court, status, and—when exposed for a `PUBLIC` slot—the reservation details. Add `--json` to receive machine-readable JSON instead:
+
+```sh
+npm run planning -- "Poliveau" "05/09/2026" --json
+```
+
+Example JSON output:
+
+```json
+[
+  {
+    "location": "Poliveau",
+    "date": "05/09/2026",
+    "time": "08h - 09h",
+    "court": "Court 01",
+    "status": "PUBLIC",
+    "details": "Réservé le 02.09.2026 20:00"
+  }
+]
+```
+
+To export every official tennis location over a date range as CSV, run:
+
+```sh
+npm run planning-export -- "04/09/2026" "10/09/2026"
+```
+
+The exporter discovers the current location names and arrondissements directly from the Paris Tennis directory. It does not use `config.locations`; that setting remains reserved for the locations used by search and booking. Exported rows include the `LIBRE` or `PUBLIC` status so the two can be filtered reliably. Both dates must fall within the current seven-day planning window. An optional third argument sets the output filename.
+
+Exports are written atomically. If any location/date query still fails after retrying, the incomplete result is written with `.partial.csv` in its filename and the command exits with an error.
 
 ### Ntfy notifications (optional)
 

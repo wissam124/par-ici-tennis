@@ -2,3 +2,5 @@ node_modules/
 config.json
 img/
 *.ics
+planning-*.csv
+*.partial.csv

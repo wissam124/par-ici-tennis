@@ -1,15 +1,20 @@
 import { chromium } from 'playwright'
 import dayjs from 'dayjs'
-import customParseFormat from 'dayjs/plugin/customParseFormat.js'
 import { writeFileSync } from 'fs'
 import { createEvent } from 'ics'
 import { config } from './staticFiles.js'
 import { notify } from './lib/ntfy.js'
-
-dayjs.extend(customParseFormat)
+import { createAuthenticatedPage } from './lib/authenticate.js'
+import { getOfficialLocations, validateConfiguredLocations } from './lib/locations.js'
+import { submitAvailabilitySearch } from './lib/availability.js'
+import { getConfiguredDate, parisToday } from './lib/dates.js'
+import { validateBookingConfig } from './lib/config.js'
 
 const bookTennis = async () => {
   const DRY_RUN_MODE = process.argv.includes('--dry-run')
+  validateBookingConfig(config)
+  const configuredDate = getConfiguredDate(config.date)
+
   if (DRY_RUN_MODE) {
     console.log('----- DRY RUN START -----')
     console.log('Script lancé en mode DRY RUN. Afin de tester votre configuration, une recherche va être lancé mais AUCUNE réservation ne sera réalisée')
@@ -17,48 +22,26 @@ const bookTennis = async () => {
 
   console.log(`${dayjs().format()} - Starting searching tennis`)
   const browser = await chromium.launch({ headless: true, slowMo: 0, timeout: 90000 })
-
-  console.log(`${dayjs().format()} - Browser started`)
-  const page = await browser.newPage()
-  await page.route('https://captcha.liveidentity.com/captcha/public/frontend/api/v3/captcha-invisible/invisible-captcha-infos', (route) => route.abort())
-  await page.route('https://captcha.liveidentity.com/captcha/public/frontend/api/v3/captchas**', (route) => route.abort())
-  page.setDefaultTimeout(90000)
-  await page.goto('https://tennis.paris.fr/tennis/jsp/site/Portal.jsp?page=tennis&view=start&full=1')
-
-  await page.click('#button_suivi_inscription')
-  await page.fill('#username', config?.account?.email || process.env.ACCOUNT_EMAIL)
-  await page.fill('#password', config?.account?.password || process.env.ACCOUNT_PASSWORD)
-  await page.click('#form-login >> button')
-
-  console.log(`${dayjs().format()} - User connected`)
-
-  // wait for login redirection before continue
-  await page.waitForSelector('.main-informations')
+  let page
 
   try {
+    console.log(`${dayjs().format()} - Browser started`)
+    page = await createAuthenticatedPage(browser, config)
+
+    console.log(`${dayjs().format()} - User connected`)
+
+    console.log(`${dayjs().format()} - Validating configured locations`)
+    const officialLocations = await getOfficialLocations(page)
+    validateConfiguredLocations(config.locations, officialLocations)
+    console.log(`${dayjs().format()} - All configured locations are valid`)
+
     const locations = !Array.isArray(config.locations) ? Object.keys(config.locations) : config.locations
     locationsLoop:
     for (const [i, location] of locations.entries()) {
       const logLocation = process.env.GITHUB_ACTIONS ? `location ${i + 1}` : location
       console.log(`${dayjs().format()} - Search at ${logLocation}`)
-      await page.goto('https://tennis.paris.fr/tennis/jsp/site/Portal.jsp?page=recherche&view=recherche_creneau#!')
-
-      // select tennis location
-      await page.locator('.tokens-input-text').pressSequentially(`${location} `)
-      await page.waitForSelector(`.tokens-suggestions-list-element >> text="${location}"`)
-      await page.click(`.tokens-suggestions-list-element >> text="${location}"`)
-
-      // select date
-      await page.click('#when')
-      const date = config.date ? dayjs(config.date, 'D/MM/YYYY') : dayjs().add(6, 'days')
-      await page.waitForSelector(`[dateiso="${date.format('DD/MM/YYYY')}"]`)
-      await page.click(`[dateiso="${date.format('DD/MM/YYYY')}"]`)
-      await page.waitForSelector('.date-picker', { state: 'hidden' })
-
-      await page.click('#rechercher')
-
-      // wait until the results page is fully loaded before continue
-      await page.waitForLoadState('domcontentloaded')
+      const date = configuredDate || parisToday().add(6, 'days')
+      await submitAvailabilitySearch(page, location, date)
 
       let selectedHour
       hoursLoop:
@@ -184,19 +167,30 @@ const bookTennis = async () => {
 
       break
     }
-  } catch (e) {
-    console.log(e)
-    const screenshot = await page.screenshot({ path: 'img/failure.png' })
+  } catch (error) {
+    process.exitCode = 1
+    console.error(error)
+    let screenshot
+    if (page && !page.isClosed()) {
+      try {
+        screenshot = await page.screenshot({ path: 'img/failure.png' })
+      } catch (screenshotError) {
+        console.error('Unable to capture failure screenshot:', screenshotError.message)
+      }
+    }
 
-    if (config.ntfy?.enable === true || process.env.NTFY_TOPIC) {
+    if (screenshot && (config.ntfy?.enable === true || process.env.NTFY_TOPIC)) {
       await notify(screenshot, 'failure.png', 'Erreur lors de l\'execution du programme.', {
         domain: config?.ntfy?.domain || process.env.NTFY_DOMAIN,
         topic: config?.ntfy?.topic || process.env.NTFY_TOPIC,
       })
     }
+  } finally {
+    await browser.close()
   }
-
-  await browser.close()
 }
 
-bookTennis()
+bookTennis().catch(error => {
+  console.error(error.message)
+  process.exitCode = 1
+})
