@@ -7,6 +7,7 @@ test('planning CSV includes arrondissement and status', () => {
     {
       location: 'Poliveau',
       court: 'Court 01',
+      courtType: 'Couvert',
       date: '05/09/2026',
       time: '08h - 09h',
       status: 'PUBLIC',
@@ -14,8 +15,8 @@ test('planning CSV includes arrondissement and status', () => {
   ], [{ name: 'Poliveau', arrondissement: 5 }])
 
   assert.equal(csv, [
-    '\uFEFF"location name","arrondissement","court number","day","date","hourly slot","status"',
-    '"Poliveau","5","01","Saturday","05/09/2026","08h - 09h","PUBLIC"',
+    '\uFEFF"location name","arrondissement","court number","court type","day","date","hourly slot","status"',
+    '"Poliveau","5","01","Couvert","Saturday","05/09/2026","08h - 09h","PUBLIC"',
     '',
   ].join('\n'))
 })
@@ -25,6 +26,7 @@ test('planning CSV escapes quotes', () => {
     {
       location: 'Court "Test"',
       court: 'Central',
+      courtType: 'Découvert',
       date: '05/09/2026',
       time: '08h - 09h',
       status: 'LIBRE',

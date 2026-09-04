@@ -112,7 +112,7 @@ To return all `LIBRE` and `PUBLIC` slots from a tennis planning, provide the loc
 npm run planning -- "Poliveau" "05/09/2026"
 ```
 
-The date must be today or one of the following six days. The command prints a terminal table containing the hourly range, physical court, status, and—when exposed for a `PUBLIC` slot—the reservation details. Add `--json` to receive machine-readable JSON instead:
+The date must be today or one of the following six days. The command prints a terminal table containing the hourly range, physical court, court type (`Couvert` or `Découvert`), status, and—when exposed for a `PUBLIC` slot—the reservation details. Add `--json` to receive machine-readable JSON instead:
 
 ```sh
 npm run planning -- "Poliveau" "05/09/2026" --json
@@ -127,6 +127,7 @@ Example JSON output:
     "date": "05/09/2026",
     "time": "08h - 09h",
     "court": "Court 01",
+    "courtType": "Couvert",
     "status": "PUBLIC",
     "details": "Réservé le 02.09.2026 20:00"
   }
@@ -139,7 +140,7 @@ To export every official tennis location over a date range as CSV, run:
 npm run planning-export -- "04/09/2026" "10/09/2026"
 ```
 
-The exporter discovers the current location names and arrondissements directly from the Paris Tennis directory. It does not use `config.locations`; that setting remains reserved for the locations used by search and booking. Exported rows include the `LIBRE` or `PUBLIC` status so the two can be filtered reliably. Both dates must fall within the current seven-day planning window. An optional third argument sets the output filename.
+The exporter discovers the current location names and arrondissements directly from the Paris Tennis directory. It does not use `config.locations`; that setting remains reserved for the locations used by search and booking. Exported rows include the court type and the `LIBRE` or `PUBLIC` status so they can be filtered reliably. Both dates must fall within the current seven-day planning window. An optional third argument sets the output filename.
 
 Exports are written atomically. If any location/date query still fails after retrying, the incomplete result is written with `.partial.csv` in its filename and the command exits with an error.
 

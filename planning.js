@@ -51,6 +51,7 @@ const planning = async () => {
 
       console.table(sortedSlots.map(slot => ({
         court: slot.court,
+        type: slot.courtType,
         time: slot.time,
         status: slot.status,
         details: slot.details || '',

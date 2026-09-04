@@ -71,10 +71,11 @@ Club, school, association, and other allocated slots are excluded. `planning.js`
 1. location name;
 2. arrondissement;
 3. court number;
-4. weekday;
-5. date;
-6. hourly slot;
-7. status.
+4. court type;
+5. weekday;
+6. date;
+7. hourly slot;
+8. status.
 
 The exporter works sequentially with a short delay, retries transient failures with backoff, and stops after five consecutive failures. Complete exports are written atomically. Incomplete exports use a `.partial.csv` filename and a non-zero exit code.
 
