@@ -14,7 +14,7 @@ test('planning CSV includes arrondissement and status', () => {
   ], [{ name: 'Poliveau', arrondissement: 5 }])
 
   assert.equal(csv, [
-    '"location name","arrondissement","court number","day","date","hourly slot","status"',
+    '\uFEFF"location name","arrondissement","court number","day","date","hourly slot","status"',
     '"Poliveau","5","01","Saturday","05/09/2026","08h - 09h","PUBLIC"',
     '',
   ].join('\n'))
@@ -32,4 +32,10 @@ test('planning CSV escapes quotes', () => {
   ], [{ name: 'Court "Test"', arrondissement: 1 }])
 
   assert.match(csv, /"Court ""Test"""/)
+})
+
+test('planning CSV starts with a UTF-8 byte-order mark for Excel', () => {
+  const csv = createPlanningCsv([], [])
+
+  assert.equal(csv.charCodeAt(0), 0xFEFF)
 })
