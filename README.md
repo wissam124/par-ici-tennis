@@ -33,7 +33,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the package structure and command dat
 
 Create `config.json` file from `config.json.sample` and complete with your preferences.
 
-- `location`: a list of courts ordered by preference - [full list](https://tennis.paris.fr/tennis/jsp/site/Portal.jsp?page=tennisParisien&view=les_tennis_parisiens)
+- `locations`: a list of courts ordered by preference - [full list](https://tennis.paris.fr/tennis/jsp/site/Portal.jsp?page=tennisParisien&view=les_tennis_parisiens)
 
 You can use two formats for the `locations` field:
 
@@ -67,6 +67,8 @@ Before searching or booking, the configured location names are checked against t
 - `priceType` an array containing price types you can book `Tarif plein` and/or `Tarif réduit`
 
 - `courtType` an array containing court types you can book `Découvert` and/or `Couvert`
+
+- `logLocationNames` (optional) set to `true` to show exact location names in GitHub Actions logs. They are anonymized there by default; local command-line runs always show them
 
 - `players` list of players 3 max (without you)
 
@@ -196,7 +198,7 @@ To test your configuration, you can run this project in dry-run mode. It creates
 npm run book-dry
 ```
 
-The booking log starts with the resolved date, requested hours, and a table with one row per configured location and court. It then shows each available configured court's full description, price type, and covered/open type as it is checked, why an incompatible candidate is skipped, and which matching court is selected. Location names are anonymized in GitHub Actions logs.
+The booking log starts with the resolved date, requested hours, and a table with one row per configured location and court. It then shows each available configured court's full description, price type, and covered/open type as it is checked, why an incompatible candidate is skipped, and which matching court is selected. Location names are anonymized in GitHub Actions logs unless `logLocationNames` is `true`.
 
 The dry run verifies cancellation by returning to the availability search page. If it cannot confirm that the temporary server-side selection was cleared, it exits with an error and tells you to cancel the pending reservation from the Paris Tennis website before trying again.
 

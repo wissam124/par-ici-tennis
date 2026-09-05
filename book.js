@@ -57,12 +57,13 @@ const bookTennis = async () => {
 
     const locations = !Array.isArray(config.locations) ? Object.keys(config.locations) : config.locations
     const date = configuredDate || parisToday().add(6, 'days')
+    const showLocationNames = !process.env.GITHUB_ACTIONS || config.logLocationNames === true
     console.log(`${dayjs().format()} - Requested date: ${date.format('DD/MM/YYYY')}`)
     console.log(`${dayjs().format()} - Requested hours: ${config.hours.map(hour => `${hour}:00`).join(', ')}`)
     console.log('Requested locations and courts:')
     console.table(locations.flatMap((location, index) => {
       const courtNumbers = !Array.isArray(config.locations) ? config.locations[location] : []
-      const displayLocation = process.env.GITHUB_ACTIONS ? `location ${index + 1}` : location
+      const displayLocation = showLocationNames ? location : `location ${index + 1}`
 
       return courtNumbers.length > 0
         ? courtNumbers.map(number => ({ location: displayLocation, court: `Court N°${number}` }))
@@ -71,7 +72,7 @@ const bookTennis = async () => {
 
     locationsLoop:
     for (const [i, location] of locations.entries()) {
-      const logLocation = process.env.GITHUB_ACTIONS ? `location ${i + 1}` : location
+      const logLocation = showLocationNames ? location : `location ${i + 1}`
       const courtNumbers = !Array.isArray(config.locations) ? config.locations[location] : []
       console.log(`${dayjs().format()} - Search at ${logLocation}`)
       if (courtNumbers.length > 0) {

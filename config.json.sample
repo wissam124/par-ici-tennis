@@ -23,6 +23,7 @@
     "Découvert",
     "Couvert"
   ],
+  "logLocationNames": false,
   "players": [
     {
       "lastName": "Lastname1",

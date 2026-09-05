@@ -31,6 +31,10 @@ test('booking configuration rejects unsupported price and court types', () => {
   assert.throws(() => validateBookingConfig({ ...validConfig, courtType: ['Clay'] }), /courtType/)
 })
 
+test('booking configuration rejects a non-boolean logLocationNames value', () => {
+  assert.throws(() => validateBookingConfig({ ...validConfig, logLocationNames: 'yes' }), /logLocationNames/)
+})
+
 test('booking configuration rejects incomplete players', () => {
   assert.throws(() => validateBookingConfig({
     ...validConfig,
