@@ -56,14 +56,15 @@ const bookTennis = async () => {
           const slots = await page.locator(dateDeb).all()
           for (const slot of slots) {
             const bookSlotButton = `[courtid="${await slot.getAttribute('courtid')}"]${dateDeb}`
+            const courtRow = page.locator(`.row.tennis-court:has(${bookSlotButton})`)
             if (courtNumbers.length > 0) {
-              const courtName = (await page.locator(`.court:left-of(${bookSlotButton})`).innerText()).trim()
+              const courtName = (await courtRow.locator('.court').innerText()).trim()
               if (!courtNumbers.includes(parseInt(courtName.match(/Court N°(\d+)/)[1]))) {
                 continue
               }
             }
 
-            const [priceType, courtType] = (await page.locator(`.row.tennis-court:has(${bookSlotButton})`).locator('.price-description').innerHTML()).split('<br>')
+            const [priceType, courtType] = (await courtRow.locator('.price-description').innerHTML()).split('<br>')
             if (!config.priceType.includes(priceType) || !config.courtType.includes(courtType)) {
               continue
             }
