@@ -190,13 +190,15 @@ and run the booking script:
 npm run book
 ```
 
-To test your configuration, you can run this project in dry-run mode. It will check court availability but no reservations will be made:
+To test your configuration, you can run this project in dry-run mode. It creates a temporary court selection, exercises the booking form without submitting the final reservation, and then cancels the selection:
 
 ```sh
 npm run book-dry
 ```
 
 The booking log starts with the resolved date, requested hours, and a table with one row per configured location and court. It then shows each available configured court's full description, price type, and covered/open type as it is checked, why an incompatible candidate is skipped, and which matching court is selected. Location names are anonymized in GitHub Actions logs.
+
+The dry run verifies cancellation by returning to the availability search page. If it cannot confirm that the temporary server-side selection was cleared, it exits with an error and tells you to cancel the pending reservation from the Paris Tennis website before trying again.
 
 The previous `npm start` and `npm run start-dry` commands remain available as aliases for backward compatibility.
 

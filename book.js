@@ -6,9 +6,28 @@ import { config } from './staticFiles.js'
 import { notify } from './lib/ntfy.js'
 import { createAuthenticatedPage } from './lib/authenticate.js'
 import { getOfficialLocations, validateConfiguredLocations } from './lib/locations.js'
-import { submitAvailabilitySearch } from './lib/availability.js'
+import { SEARCH_URL, submitAvailabilitySearch } from './lib/availability.js'
 import { getConfiguredDate, parisToday } from './lib/dates.js'
 import { validateBookingConfig } from './lib/config.js'
+
+const cancelDryRunSelection = async page => {
+  console.log(`${dayjs().format()} - Cancelling the temporary dry-run selection...`)
+
+  const previousButton = page.locator('#previous').filter({ visible: true })
+  if (await previousButton.count() > 0) {
+    await previousButton.click()
+  }
+
+  const cancelButton = page.locator('#btnCancelBooking').filter({ visible: true })
+  await cancelButton.waitFor({ state: 'visible', timeout: 10000 })
+  await cancelButton.click()
+
+  // A pending server-side selection redirects this URL back to the reservation
+  // flow, so seeing the search input confirms that cancellation really cleared it.
+  await page.goto(SEARCH_URL, { waitUntil: 'domcontentloaded' })
+  await page.locator('.tokens-input-text').waitFor({ state: 'visible', timeout: 10000 })
+  console.log(`${dayjs().format()} - Temporary selection cancelled successfully.`)
+}
 
 const bookTennis = async () => {
   const DRY_RUN_MODE = process.argv.includes('--dry-run')
@@ -17,12 +36,13 @@ const bookTennis = async () => {
 
   if (DRY_RUN_MODE) {
     console.log('----- DRY RUN START -----')
-    console.log('Script lancé en mode DRY RUN. Afin de tester votre configuration, une recherche va être lancé mais AUCUNE réservation ne sera réalisée')
+    console.log('Script lancé en mode DRY RUN. Une sélection temporaire sera créée puis annulée ; aucune réservation définitive ne sera envoyée.')
   }
 
   console.log(`${dayjs().format()} - Starting searching tennis`)
   const browser = await chromium.launch({ headless: true, slowMo: 0, timeout: 90000 })
   let page
+  let dryRunSelectionActive = false
 
   try {
     console.log(`${dayjs().format()} - Browser started`)
@@ -90,6 +110,7 @@ const bookTennis = async () => {
             selectedHour = hour
             console.log(`${dayjs().format()} - Selecting ${courtName} at ${hour}:00`)
             await page.click(bookSlotButton)
+            dryRunSelectionActive = DRY_RUN_MODE
 
             break hoursLoop
           }
@@ -123,13 +144,12 @@ const bookTennis = async () => {
       await paymentMode.fill('existingTicket')
 
       if (DRY_RUN_MODE) {
-        console.log(`${dayjs().format()} - Fausse réservation faite : ${logLocation}`)
+        console.log(`${dayjs().format()} - Temporary dry-run selection created: ${logLocation}`)
         if (!process.env.GITHUB_ACTIONS) console.log(`pour le ${date.format('YYYY/MM/DD')} à ${selectedHour}h`)
+        await cancelDryRunSelection(page)
+        dryRunSelectionActive = false
         console.log('----- DRY RUN END -----')
-        console.log('Pour réellement réserver un crénau, relancez le script sans le paramètre --dry-run')
-
-        await page.click('#previous')
-        await page.click('#btnCancelBooking')
+        console.log('Pour réellement réserver un créneau, relancez le script sans le paramètre --dry-run')
 
         break locationsLoop
       }
@@ -200,6 +220,16 @@ const bookTennis = async () => {
       }
     }
 
+    if (dryRunSelectionActive && page && !page.isClosed()) {
+      try {
+        console.log(`${dayjs().format()} - Cleaning up the dry-run selection after an error...`)
+        await cancelDryRunSelection(page)
+        dryRunSelectionActive = false
+      } catch (cleanupError) {
+        console.error(`${dayjs().format()} - First cleanup attempt failed: ${cleanupError.message}`)
+      }
+    }
+
     if (screenshot && (config.ntfy?.enable === true || process.env.NTFY_TOPIC)) {
       await notify(screenshot, 'failure.png', 'Erreur lors de l\'execution du programme.', {
         domain: config?.ntfy?.domain || process.env.NTFY_DOMAIN,
@@ -207,6 +237,17 @@ const bookTennis = async () => {
       })
     }
   } finally {
+    if (dryRunSelectionActive && page && !page.isClosed()) {
+      try {
+        console.log(`${dayjs().format()} - Retrying dry-run cleanup before closing the browser...`)
+        await cancelDryRunSelection(page)
+        dryRunSelectionActive = false
+      } catch (cleanupError) {
+        process.exitCode = 1
+        console.error(`${dayjs().format()} - WARNING: Unable to confirm cancellation of the temporary dry-run selection: ${cleanupError.message}`)
+        console.error('Open Paris Tennis in a browser and cancel any pending reservation before running the script again.')
+      }
+    }
     await browser.close()
   }
 }
