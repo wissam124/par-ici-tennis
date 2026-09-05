@@ -19,6 +19,7 @@ jobs:
   run-once:
     name: Run script at 08:00 Europe/Paris and self-disable
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -35,9 +36,9 @@ jobs:
           set -euo pipefail
           if [ -n "${CONFIG_JSON:-}" ]; then
             printf "%s" "$CONFIG_JSON" > config.json
-            echo "config.json created from CONFIG_JSON secret"
+            echo "config.json created from CONFIG_JSON repository variable"
           else
-            echo "ERROR: Missing CONFIG_JSON secret." >&2
+            echo "ERROR: Missing CONFIG_JSON repository variable." >&2
             exit 1
           fi
 
@@ -52,8 +53,8 @@ jobs:
           restore-keys: |
             playwright-${{ runner.os }}-
 
-      - name: Install Playwright browser (only-shell)
-        run: npx playwright install chromium --only-shell
+      - name: Install Playwright browser and system dependencies
+        run: npx playwright install --with-deps --only-shell chromium
 
       - name: Wait 08:00 Europe/Paris
         if: github.event_name == 'schedule'
@@ -67,6 +68,8 @@ jobs:
           NTFY_DOMAIN: ${{ secrets.NTFY_DOMAIN }}
         run: npm start
 
+      # This is deliberately unconditional: a failed one-shot attempt must not
+      # remain enabled and accidentally book a different day on the next run.
       - name: Self-disable this workflow (GitHub CLI)
         if: always()
         shell: bash

@@ -221,8 +221,8 @@ You can automate the booking using GitHub Actions workflows. The repository incl
 
 3. **Enable workflow:**
    - The day before you want to execute the script, go to the Actions tab and enable the `Tennis booking` workflow
-   - The workflow runs the following day at 08:00 Paris time and automatically disables itself after running to avoid restarting on subsequent days
-   - Manually re-enable it from the Actions tab when you need to book again
+   - GitHub starts the workflow at 07:45 Paris time the following day; after setup, the script waits until 08:00 before searching for a court
+   - The workflow automatically disables itself after the attempt—even if setup or booking fails—to prevent it from accidentally booking for a different day on a later run. Check the result in the Actions tab and re-enable it manually when needed
 
 To test Github Actions config you can start `Tennis booking dry-run` workflow manually. It will check court availability but no reservations will be made.
 

@@ -14,6 +14,7 @@ jobs:
   run-once:
     name: dry-run script
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -30,9 +31,9 @@ jobs:
           set -euo pipefail
           if [ -n "${CONFIG_JSON:-}" ]; then
             printf "%s" "$CONFIG_JSON" > config.json
-            echo "config.json created from CONFIG_JSON secret"
+            echo "config.json created from CONFIG_JSON repository variable"
           else
-            echo "ERROR: Missing CONFIG_JSON secret." >&2
+            echo "ERROR: Missing CONFIG_JSON repository variable." >&2
             exit 1
           fi
 
@@ -47,8 +48,8 @@ jobs:
           restore-keys: |
             playwright-${{ runner.os }}-
       
-      - name: Install Playwright browser (only-shell)
-        run: npx playwright install chromium --only-shell
+      - name: Install Playwright browser and system dependencies
+        run: npx playwright install --with-deps --only-shell chromium
 
       - name: Run script
         env:
