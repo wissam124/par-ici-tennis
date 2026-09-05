@@ -9,7 +9,6 @@ on:
 
 permissions:
   contents: read
-  actions: write # to disable this workflow after it runs
 
 concurrency:
   group: ${{ github.workflow }}
@@ -68,10 +67,17 @@ jobs:
           NTFY_DOMAIN: ${{ secrets.NTFY_DOMAIN }}
         run: npm run book
 
-      # This is deliberately unconditional: a failed one-shot attempt must not
-      # remain enabled and accidentally book a different day on the next run.
+  disable:
+    name: Self-disable workflow
+    needs: run-once
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+      contents: read
+    steps:
       - name: Self-disable this workflow (GitHub CLI)
-        if: always()
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -80,5 +86,5 @@ jobs:
           echo "GitHub CLI version:" && gh --version
           echo "Disabling workflow using gh..."
           # Disable this workflow so it won't run automatically the next day
-          gh workflow disable .github/workflows/book-tennis.yml
+          gh workflow disable book-tennis.yml --repo "$GITHUB_REPOSITORY"
           echo "Workflow disabled. Re-enable it manually from the Actions tab when needed."

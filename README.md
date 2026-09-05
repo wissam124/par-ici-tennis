@@ -202,6 +202,8 @@ The booking log starts with the resolved date, requested hours, and a table with
 
 The dry run verifies cancellation by returning to the availability search page. If it cannot confirm that the temporary server-side selection was cleared, it exits with an error and tells you to cancel the pending reservation from the Paris Tennis website before trying again.
 
+If a booking search completes normally but finds no matching court, the command reports that no reservation was made. In GitHub Actions this appears as a warning while the workflow remains successful; red failures are reserved for configuration, authentication, website interaction, booking, or cleanup errors.
+
 The previous `npm start` and `npm run start-dry` commands remain available as aliases for backward compatibility.
 
 You can start the script automatically using cron or equivalent

@@ -6,28 +6,10 @@ import { config } from './staticFiles.js'
 import { notify } from './lib/ntfy.js'
 import { createAuthenticatedPage } from './lib/authenticate.js'
 import { getOfficialLocations, validateConfiguredLocations } from './lib/locations.js'
-import { SEARCH_URL, submitAvailabilitySearch } from './lib/availability.js'
+import { readAvailabilitySlot, submitAvailabilitySearch } from './lib/availability.js'
 import { getConfiguredDate, parisToday } from './lib/dates.js'
 import { validateBookingConfig } from './lib/config.js'
-
-const cancelDryRunSelection = async page => {
-  console.log(`${dayjs().format()} - Cancelling the temporary dry-run selection...`)
-
-  const previousButton = page.locator('#previous').filter({ visible: true })
-  if (await previousButton.count() > 0) {
-    await previousButton.click()
-  }
-
-  const cancelButton = page.locator('#btnCancelBooking').filter({ visible: true })
-  await cancelButton.waitFor({ state: 'visible', timeout: 10000 })
-  await cancelButton.click()
-
-  // A pending server-side selection redirects this URL back to the reservation
-  // flow, so seeing the search input confirms that cancellation really cleared it.
-  await page.goto(SEARCH_URL, { waitUntil: 'domcontentloaded' })
-  await page.locator('.tokens-input-text').waitFor({ state: 'visible', timeout: 10000 })
-  console.log(`${dayjs().format()} - Temporary selection cancelled successfully.`)
-}
+import { cancelDryRunSelection } from './lib/dry-run.js'
 
 const bookTennis = async () => {
   const DRY_RUN_MODE = process.argv.includes('--dry-run')
@@ -43,6 +25,7 @@ const bookTennis = async () => {
   const browser = await chromium.launch({ headless: true, slowMo: 0, timeout: 90000 })
   let page
   let dryRunSelectionActive = false
+  let matchingSlotFound = false
 
   try {
     console.log(`${dayjs().format()} - Browser started`)
@@ -93,24 +76,19 @@ const bookTennis = async () => {
 
           const slots = await page.locator(dateDeb).all()
           for (const slot of slots) {
-            const bookSlotButton = `[courtid="${await slot.getAttribute('courtid')}"]${dateDeb}`
-            const courtRow = page.locator(`.row.tennis-court:has(${bookSlotButton})`)
-            const courtName = (await courtRow.locator('.court').innerText()).trim().replace(/\s+/g, ' ')
-            if (courtNumbers.length > 0) {
-              if (!courtNumbers.includes(parseInt(courtName.match(/Court N°(\d+)/)[1]))) {
-                continue
-              }
+            const court = await readAvailabilitySlot(page, slot, dateDeb)
+            if (courtNumbers.length > 0 && !courtNumbers.includes(court.courtNumber)) {
+              continue
             }
 
-            const [priceType, courtType] = (await courtRow.locator('.price-description').innerHTML()).split('<br>')
-            console.log(`${dayjs().format()} - Checking ${courtName} at ${hour}:00 — ${priceType} / ${courtType}`)
-            if (!config.priceType.includes(priceType) || !config.courtType.includes(courtType)) {
-              console.log(`${dayjs().format()} - Skipping ${courtName}: ${priceType} / ${courtType} does not match booking preferences`)
+            console.log(`${dayjs().format()} - Checking ${court.court} at ${hour}:00 — ${court.priceType} / ${court.courtType}`)
+            if (!config.priceType.includes(court.priceType) || !config.courtType.includes(court.courtType)) {
+              console.log(`${dayjs().format()} - Skipping ${court.court}: ${court.priceType} / ${court.courtType} does not match booking preferences`)
               continue
             }
             selectedHour = hour
-            console.log(`${dayjs().format()} - Selecting ${courtName} at ${hour}:00`)
-            await page.click(bookSlotButton)
+            console.log(`${dayjs().format()} - Selecting ${court.court} at ${hour}:00`)
+            await page.click(court.buttonSelector)
             dryRunSelectionActive = DRY_RUN_MODE
 
             break hoursLoop
@@ -119,11 +97,15 @@ const bookTennis = async () => {
       }
 
       if (await page.title() !== 'Paris | TENNIS - Reservation') {
+        if (selectedHour) {
+          throw new Error(`The selected ${selectedHour}:00 slot at ${logLocation} did not open the expected reservation page.`)
+        }
         console.log(`${dayjs().format()} - Failed to find reservation for ${logLocation}`)
         continue
       }
 
       await page.waitForSelector('.order-steps-infos h2 >> text="1 / 3 - Validation du court"')
+      matchingSlotFound = true
 
       for (const [i, player] of config.players.entries()) {
         if (i > 0) {
@@ -208,6 +190,14 @@ const bookTennis = async () => {
       }
 
       break
+    }
+
+    if (!matchingSlotFound) {
+      console.log(`${dayjs().format()} - Booking search completed successfully.`)
+      console.log(`${dayjs().format()} - No matching court was available; no reservation was made.`)
+      if (process.env.GITHUB_ACTIONS) {
+        console.log('::warning title=No court booked::The search completed successfully, but no matching court was available.')
+      }
     }
   } catch (error) {
     process.exitCode = 1

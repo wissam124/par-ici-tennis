@@ -36,7 +36,7 @@ The `locations` value in `config.json` belongs only to booking and availability 
 
 ### Availability search
 
-`lib/availability.js` owns the browser interaction with the bookable-slot search page. It opens the page, selects an exact autocomplete location, selects the date, submits the search, and extracts matching court, hour, price, and court-type data.
+`lib/availability.js` owns the browser interaction with the bookable-slot search page. It opens the page, selects an exact autocomplete location, selects the date, submits the search, and extracts matching court, hour, price, and court-type data. Search and booking share the same result-row parser.
 
 Location selection handles the autocomplete overlay explicitly and retries a failed location query once. Booking reuses the same search submission function before selecting a result.
 
@@ -53,7 +53,7 @@ Location selection handles the autocomplete overlay explicitly and retries a fai
 7. cancel in dry-run mode or submit the reservation;
 8. create an ICS event and optionally send an ntfy notification.
 
-The browser closes in a `finally` block. Failures set a non-zero exit code, attempt to capture a screenshot, and can send that screenshot through ntfy.
+`lib/dry-run.js` cancels temporary selections and verifies that the availability page is accessible again. The browser closes in a `finally` block, with a second cleanup attempt when necessary. Failures set a non-zero exit code, attempt to capture a screenshot, and can send that screenshot through ntfy. A completed search with no matching court remains successful but emits a GitHub Actions warning.
 
 ### Planning
 
@@ -134,7 +134,7 @@ Paris Tennis is an external website rather than a versioned API. Its DOM selecto
 
 ## Testing
 
-Tests under `test/` use Node's built-in test runner. They cover date parsing and ranges, configuration validation, official-location parsing and normalization, and CSV schema and escaping. Pull-request CI runs both ESLint and unit tests. Live authentication and booking are intentionally excluded from pull-request CI.
+Tests under `test/` use Node's built-in test runner. They cover availability-row parsing, configuration validation, date parsing and ranges, dry-run cleanup, official-location parsing and normalization, notification responses, planning-slot construction, and CSV schema and escaping. Pull-request CI runs both ESLint and unit tests. Live authentication and booking are intentionally excluded from pull-request CI.
 
 ## Generated and private files
 
