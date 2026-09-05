@@ -6,8 +6,8 @@
 
 | Command | Entry point | Purpose |
 | --- | --- | --- |
-| `npm start` | `index.js` | Find and book the first slot matching the configured preferences. |
-| `npm run start-dry` | `index.js --dry-run` | Exercise the booking flow, then cancel before payment submission. |
+| `npm run book` | `book.js` | Find and book the first slot matching the configured preferences. |
+| `npm run book-dry` | `book.js --dry-run` | Exercise the booking flow, then cancel before payment submission. |
 | `npm run search` | `search.js` | Find currently bookable slots matching `config.json`. |
 | `npm run planning -- <location> <date>` | `planning.js` | Return `LIBRE` and `PUBLIC` planning slots for one location and date. |
 | `npm run planning-export -- <start> <end> [file]` | `planning-export.js` | Export planning slots for every official location as CSV. |
@@ -42,7 +42,7 @@ Location selection handles the autocomplete overlay explicitly and retries a fai
 
 ### Booking
 
-`index.js` coordinates the state-changing workflow:
+`book.js` coordinates the state-changing workflow:
 
 1. validate configuration and date;
 2. authenticate and validate configured locations;

@@ -184,17 +184,19 @@ To run this project locally, install the dependencies
 npm install
 ```
 
-and run the script:
+and run the booking script:
 
 ```sh
-npm start
+npm run book
 ```
 
 To test your configuration, you can run this project in dry-run mode. It will check court availability but no reservations will be made:
 
 ```sh
-npm run start-dry
+npm run book-dry
 ```
+
+The previous `npm start` and `npm run start-dry` commands remain available as aliases for backward compatibility.
 
 You can start the script automatically using cron or equivalent
 

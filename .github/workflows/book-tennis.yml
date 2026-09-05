@@ -66,7 +66,7 @@ jobs:
           ACCOUNT_PASSWORD: ${{ secrets.ACCOUNT_PASSWORD }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
           NTFY_DOMAIN: ${{ secrets.NTFY_DOMAIN }}
-        run: npm start
+        run: npm run book
 
       # This is deliberately unconditional: a failed one-shot attempt must not
       # remain enabled and accidentally book a different day on the next run.
