@@ -196,6 +196,8 @@ To test your configuration, you can run this project in dry-run mode. It will ch
 npm run book-dry
 ```
 
+The booking log starts with the resolved date, requested hours, and a table with one row per configured location and court. It then shows each available configured court's full description, price type, and covered/open type as it is checked, why an incompatible candidate is skipped, and which matching court is selected. Location names are anonymized in GitHub Actions logs.
+
 The previous `npm start` and `npm run start-dry` commands remain available as aliases for backward compatibility.
 
 You can start the script automatically using cron or equivalent

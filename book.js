@@ -36,11 +36,29 @@ const bookTennis = async () => {
     console.log(`${dayjs().format()} - All configured locations are valid`)
 
     const locations = !Array.isArray(config.locations) ? Object.keys(config.locations) : config.locations
+    const date = configuredDate || parisToday().add(6, 'days')
+    console.log(`${dayjs().format()} - Requested date: ${date.format('DD/MM/YYYY')}`)
+    console.log(`${dayjs().format()} - Requested hours: ${config.hours.map(hour => `${hour}:00`).join(', ')}`)
+    console.log('Requested locations and courts:')
+    console.table(locations.flatMap((location, index) => {
+      const courtNumbers = !Array.isArray(config.locations) ? config.locations[location] : []
+      const displayLocation = process.env.GITHUB_ACTIONS ? `location ${index + 1}` : location
+
+      return courtNumbers.length > 0
+        ? courtNumbers.map(number => ({ location: displayLocation, court: `Court N°${number}` }))
+        : [{ location: displayLocation, court: 'All courts' }]
+    }))
+
     locationsLoop:
     for (const [i, location] of locations.entries()) {
       const logLocation = process.env.GITHUB_ACTIONS ? `location ${i + 1}` : location
+      const courtNumbers = !Array.isArray(config.locations) ? config.locations[location] : []
       console.log(`${dayjs().format()} - Search at ${logLocation}`)
-      const date = configuredDate || parisToday().add(6, 'days')
+      if (courtNumbers.length > 0) {
+        console.log(`${dayjs().format()} - Courts requested at ${logLocation}: ${courtNumbers.map(number => `Court N°${number}`).join(', ')}`)
+      } else {
+        console.log(`${dayjs().format()} - All courts accepted at ${logLocation}`)
+      }
       await submitAvailabilitySearch(page, location, date)
 
       let selectedHour
@@ -52,23 +70,25 @@ const bookTennis = async () => {
             await page.click(`#head${location.replaceAll(' ', '')}${hour}h .panel-title`)
           }
 
-          const courtNumbers = !Array.isArray(config.locations) ? config.locations[location] : []
           const slots = await page.locator(dateDeb).all()
           for (const slot of slots) {
             const bookSlotButton = `[courtid="${await slot.getAttribute('courtid')}"]${dateDeb}`
             const courtRow = page.locator(`.row.tennis-court:has(${bookSlotButton})`)
+            const courtName = (await courtRow.locator('.court').innerText()).trim().replace(/\s+/g, ' ')
             if (courtNumbers.length > 0) {
-              const courtName = (await courtRow.locator('.court').innerText()).trim()
               if (!courtNumbers.includes(parseInt(courtName.match(/Court N°(\d+)/)[1]))) {
                 continue
               }
             }
 
             const [priceType, courtType] = (await courtRow.locator('.price-description').innerHTML()).split('<br>')
+            console.log(`${dayjs().format()} - Checking ${courtName} at ${hour}:00 — ${priceType} / ${courtType}`)
             if (!config.priceType.includes(priceType) || !config.courtType.includes(courtType)) {
+              console.log(`${dayjs().format()} - Skipping ${courtName}: ${priceType} / ${courtType} does not match booking preferences`)
               continue
             }
             selectedHour = hour
+            console.log(`${dayjs().format()} - Selecting ${courtName} at ${hour}:00`)
             await page.click(bookSlotButton)
 
             break hoursLoop
