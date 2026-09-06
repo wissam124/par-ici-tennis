@@ -62,7 +62,7 @@ Before searching or booking, the configured location names are checked against t
 
 - `date` (optional) a string representing a date formatted D/M/YYYY, do not set the date to automatically book 6 days in the future as soon as the reservation slots open
 
-- `hours` a list of hours ordered by preference
+- `hours` a list of hours ordered by preference. Single-digit hours can be written as either `"9"` or `"09"`
 
 - `priceType` an array containing price types you can book `Tarif plein` and/or `Tarif réduit`
 

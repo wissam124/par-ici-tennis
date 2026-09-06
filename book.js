@@ -6,7 +6,7 @@ import { config } from './staticFiles.js'
 import { notify } from './lib/ntfy.js'
 import { createAuthenticatedPage } from './lib/authenticate.js'
 import { getOfficialLocations, validateConfiguredLocations } from './lib/locations.js'
-import { readAvailabilitySlot, submitAvailabilitySearch } from './lib/availability.js'
+import { formatAvailabilityHour, getAvailabilitySlotSelector, readAvailabilitySlot, submitAvailabilitySearch } from './lib/availability.js'
 import { getConfiguredDate, parisToday } from './lib/dates.js'
 import { validateBookingConfig } from './lib/config.js'
 import { cancelDryRunSelection } from './lib/dry-run.js'
@@ -42,7 +42,7 @@ const bookTennis = async () => {
     const date = configuredDate || parisToday().add(6, 'days')
     const showLocationNames = !process.env.GITHUB_ACTIONS || config.logLocationNames === true
     console.log(`${dayjs().format()} - Requested date: ${date.format('DD/MM/YYYY')}`)
-    console.log(`${dayjs().format()} - Requested hours: ${config.hours.map(hour => `${hour}:00`).join(', ')}`)
+    console.log(`${dayjs().format()} - Requested hours: ${config.hours.map(hour => `${formatAvailabilityHour(hour)}:00`).join(', ')}`)
     console.log('Requested locations and courts:')
     console.table(locations.flatMap((location, index) => {
       const courtNumbers = !Array.isArray(config.locations) ? config.locations[location] : []
@@ -68,10 +68,11 @@ const bookTennis = async () => {
       let selectedHour
       hoursLoop:
       for (const hour of config.hours) {
-        const dateDeb = `[datedeb="${date.format('YYYY/MM/DD')} ${hour}:00:00"]`
+        const normalizedHour = formatAvailabilityHour(hour)
+        const dateDeb = getAvailabilitySlotSelector(date, normalizedHour)
         if (await page.locator(dateDeb).count()) {
           if (await page.isHidden(dateDeb)) {
-            await page.click(`#head${location.replaceAll(' ', '')}${hour}h .panel-title`)
+            await page.click(`#head${location.replaceAll(' ', '')}${normalizedHour}h .panel-title`)
           }
 
           const slots = await page.locator(dateDeb).all()
@@ -81,13 +82,13 @@ const bookTennis = async () => {
               continue
             }
 
-            console.log(`${dayjs().format()} - Checking ${court.court} at ${hour}:00 — ${court.priceType} / ${court.courtType}`)
+            console.log(`${dayjs().format()} - Checking ${court.court} at ${normalizedHour}:00 — ${court.priceType} / ${court.courtType}`)
             if (!config.priceType.includes(court.priceType) || !config.courtType.includes(court.courtType)) {
               console.log(`${dayjs().format()} - Skipping ${court.court}: ${court.priceType} / ${court.courtType} does not match booking preferences`)
               continue
             }
-            selectedHour = hour
-            console.log(`${dayjs().format()} - Selecting ${court.court} at ${hour}:00`)
+            selectedHour = normalizedHour
+            console.log(`${dayjs().format()} - Selecting ${court.court} at ${normalizedHour}:00`)
             await page.click(court.buttonSelector)
             dryRunSelectionActive = DRY_RUN_MODE
 

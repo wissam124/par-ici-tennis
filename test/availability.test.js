@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readAvailabilitySlot } from '../lib/availability.js'
+import { formatAvailabilityHour, getAvailabilitySlotSelector, readAvailabilitySlot } from '../lib/availability.js'
+import { parseDate } from '../lib/dates.js'
 
 const createPage = court => ({
   locator: () => ({
@@ -8,6 +9,15 @@ const createPage = court => ({
       ? { textContent: async () => court }
       : { innerHTML: async () => 'Tarif plein<br>Couvert' },
   }),
+})
+
+test('availability selectors zero-pad single-digit hours', () => {
+  const date = parseDate('12/09/2026')
+
+  assert.equal(formatAvailabilityHour('9'), '09')
+  assert.equal(formatAvailabilityHour('09'), '09')
+  assert.equal(getAvailabilitySlotSelector(date, '9'), '[datedeb="2026/09/12 09:00:00"]')
+  assert.equal(getAvailabilitySlotSelector(date, '09'), '[datedeb="2026/09/12 09:00:00"]')
 })
 
 test('readAvailabilitySlot extracts reusable booking metadata', async () => {
