@@ -11,12 +11,13 @@ test('planning CSV includes arrondissement and status', () => {
       date: '05/09/2026',
       time: '08h - 09h',
       status: 'PUBLIC',
+      bookingTimestamp: '04.09.2026 08:00',
     },
   ], [{ name: 'Poliveau', arrondissement: 5 }])
 
   assert.equal(csv, [
-    '\uFEFF"location name","arrondissement","court number","court type","day","date","hourly slot","status"',
-    '"Poliveau","5","01","Couvert","Saturday","05/09/2026","08h - 09h","PUBLIC"',
+    '\uFEFF"location name","arrondissement","court number","court type","day","date","hourly slot","status","booking timestamp"',
+    '"Poliveau","5","01","Couvert","Saturday","05/09/2026","08h - 09h","PUBLIC","04.09.2026 08:00"',
     '',
   ].join('\n'))
 })

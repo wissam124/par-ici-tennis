@@ -44,6 +44,7 @@ test('planning data retains LIBRE and PUBLIC slots with court types', () => {
       courtType: 'Couvert',
       status: 'PUBLIC',
       details: 'Réservé le 04.09.2026 08:00',
+      bookingTimestamp: '04.09.2026 08:00',
     },
   ])
 })
