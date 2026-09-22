@@ -147,6 +147,22 @@ The exporter discovers the current location names and arrondissements directly f
 
 Exports are written atomically. If any location/date query still fails after retrying, the incomplete result is written with `.partial.csv` in its filename and the command exits with an error.
 
+### Searching all free planning slots
+
+To search all `LIBRE` slots across the planning window, run:
+
+```sh
+npm run planning-search
+```
+
+Optional filters can be combined:
+
+```sh
+npm run planning-search -- --location "Poliveau" --date "05/09/2026" --time "09"
+```
+
+The filters are optional: `--location` limits the location, `--date` limits the day, and `--time` limits the starting hour. Without a date, the command searches today and the following six days. Results include the location, arrondissement, date, day of the week, court number, court type, and hourly slot, sorted by date, arrondissement, location, and time.
+
 ### Ntfy notifications (optional)
 
 You can configure the script to send notifications with the reservation details and the ics file via [ntfy](https://ntfy.sh), a simple pub-sub notification service.

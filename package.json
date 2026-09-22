@@ -27,6 +27,7 @@
     "start-dry": "npm run book-dry",
     "search": "node search.js",
     "planning": "node planning.js",
+    "planning-search": "node planning-search.js",
     "planning-export": "node planning-export.js",
     "wait": "node scripts/wait-8-am.js",
     "test": "node --test",
