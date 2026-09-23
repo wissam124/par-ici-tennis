@@ -4,4 +4,6 @@ config.*.json
 img/
 *.ics
 planning-*.csv
+planning-*.xlsx
 *.partial.csv
+.DS_Store
