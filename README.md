@@ -56,6 +56,8 @@ You can use two formats for the `locations` field:
   ```
   Use this if you want to specify court numbers for each location. An empty array means all courts at that location will be considered.
 
+  When court numbers are specified, the booking command tries available courts in the order listed for that location. Hours and locations retain their own configured priority order.
+
 Choose the format that best matches your preferences.
 
 Before searching or booking, the configured location names are checked against the current official Paris Tennis directory. The command stops and reports any invalid names.

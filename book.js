@@ -76,11 +76,11 @@ const bookTennis = async () => {
           }
 
           const slots = await page.locator(dateDeb).all()
-          for (const slot of slots) {
-            const court = await readAvailabilitySlot(page, slot, dateDeb)
-            if (courtNumbers.length > 0 && !courtNumbers.includes(court.courtNumber)) {
-              continue
-            }
+          const courts = await Promise.all(slots.map(slot => readAvailabilitySlot(page, slot, dateDeb)))
+          const orderedCourts = courtNumbers.length > 0
+            ? courtNumbers.flatMap(number => courts.filter(court => court.courtNumber === number))
+            : courts
+          for (const court of orderedCourts) {
 
             console.log(`${dayjs().format()} - Checking ${court.court} at ${normalizedHour}:00 — ${court.priceType} / ${court.courtType}`)
             if (!config.priceType.includes(court.priceType) || !config.courtType.includes(court.courtType)) {
